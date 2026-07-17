@@ -426,6 +426,134 @@
     height:4px;
     border-radius:2px;
   }
+
+  .np-main{cursor:pointer;}
+
+  /* ===== full-screen now playing ===== */
+  .now-playing-full{
+    position:fixed;
+    inset:0;
+    z-index:95;
+    background:radial-gradient(ellipse at top, #1a0303 0%, var(--void) 65%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:26px 24px 30px;
+    transform:translateY(100%);
+    transition:transform .4s ease;
+    overflow-y:auto;
+  }
+  .now-playing-full.show{transform:translateY(0);}
+  .npf-top{
+    width:100%;
+    max-width:420px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .npf-top button{
+    background:none;
+    border:none;
+    color:var(--bone);
+    cursor:pointer;
+    padding:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .npf-top svg{width:26px;height:26px;fill:var(--bone);}
+  .npf-cover{
+    width:min(74vw,300px);
+    height:min(74vw,300px);
+    object-fit:cover;
+    border-radius:6px;
+    margin:34px 0 26px;
+    box-shadow:0 0 44px rgba(138,3,3,0.5);
+    border:1px solid var(--blood-dim);
+  }
+  .npf-title{
+    font-family:'Metal Mania', cursive;
+    font-size:23px;
+    text-align:center;
+    letter-spacing:0.5px;
+    max-width:340px;
+  }
+  .npf-artist{
+    color:var(--grey);
+    font-size:14px;
+    margin-top:8px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .npf-progress-row{
+    width:100%;
+    max-width:420px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:30px;
+  }
+  .npf-controls{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+    margin-top:22px;
+  }
+  .npf-controls button{
+    background:none;
+    border:none;
+    color:var(--bone);
+    cursor:pointer;
+    padding:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .npf-controls svg{width:24px;height:24px;fill:var(--bone);}
+  .npf-play-big{
+    width:64px;height:64px;
+    border-radius:50%;
+    background:var(--blood);
+    box-shadow:0 0 24px rgba(138,3,3,0.7);
+  }
+  .npf-play-big svg{width:30px;height:30px;}
+  .npf-toggle{position:relative;}
+  .npf-toggle.active svg{fill:var(--blood);filter:drop-shadow(0 0 6px rgba(138,3,3,0.9));}
+  .npf-toggle .repeat-one-badge{
+    position:absolute;
+    bottom:-2px; right:-2px;
+    font-family:'Metal Mania', cursive;
+    font-size:10px;
+    color:var(--blood);
+    background:var(--void);
+    border-radius:50%;
+    width:13px;height:13px;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  .npf-toast{
+    position:fixed;
+    bottom:100px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);
+    border:1px solid var(--blood);
+    color:var(--bone);
+    font-family:'Metal Mania', cursive;
+    font-size:13px;
+    letter-spacing:1px;
+    padding:10px 18px;
+    border-radius:3px;
+    z-index:110;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  .npf-toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
 </style>
 </head>
 <body>
@@ -535,7 +663,7 @@
 
   <!-- Now playing bar -->
   <div class="now-playing" id="nowPlaying">
-    <div class="np-main">
+    <div class="np-main" id="npExpandTrigger">
       <img id="npCover" src="" alt="cover">
       <div class="np-info">
         <div class="np-title" id="npTitle">—</div>
@@ -560,6 +688,44 @@
   </div>
   <audio id="audioPlayer" preload="metadata"></audio>
 
+  <!-- Full-screen now playing page -->
+  <div class="now-playing-full" id="nowPlayingFull">
+    <div class="npf-top">
+      <button id="npfMinimize" aria-label="minimize">
+        <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <button id="npfShare" aria-label="share">
+        <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91-1.31-2.92-2.92-2.92z"/></svg>
+      </button>
+    </div>
+    <img class="npf-cover" id="npfCover" src="" alt="cover">
+    <div class="npf-title" id="npfTitle">—</div>
+    <div class="npf-artist">ARISTXCLESS</div>
+    <div class="npf-progress-row">
+      <span class="np-time" id="npfCurrent">0:00</span>
+      <input type="range" class="np-seek" id="npfSeek" min="0" max="100" value="0" step="1">
+      <span class="np-time" id="npfDuration">0:00</span>
+    </div>
+    <div class="npf-controls">
+      <button class="npf-toggle" id="npfShuffle" aria-label="shuffle">
+        <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4zm.33 9.41l-1.41 1.41 2.04 2.04L4 18.59V4h.01L4 4v14.59L14.83 20l2.04-2.04L15.46 16.5 20 20.04V14.5z"/></svg>
+      </button>
+      <button id="npfPrev" aria-label="previous">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="npf-play-big" id="npfPlayPause" aria-label="play/pause">
+        <svg id="npfPlayIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"/></svg>
+      </button>
+      <button id="npfNext" aria-label="next">
+        <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
+      </button>
+      <button class="npf-toggle" id="npfRepeat" aria-label="repeat">
+        <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="npf-toast" id="npfToast">Link copied</div>
+
   <script>
     const burgerBtn = document.getElementById('burgerBtn');
     const menuOverlay = document.getElementById('menuOverlay');
@@ -581,6 +747,9 @@
     // ==========================================================================
 
     let currentTrack = 0;
+    let isShuffle = false;
+    let repeatMode = 'off'; // 'off' | 'all' | 'one'
+
     const audio = document.getElementById('audioPlayer');
     const nowPlaying = document.getElementById('nowPlaying');
     const npCover = document.getElementById('npCover');
@@ -590,9 +759,23 @@
     const npSeek = document.getElementById('npSeek');
     const npCurrent = document.getElementById('npCurrent');
     const npDuration = document.getElementById('npDuration');
+    const npExpandTrigger = document.getElementById('npExpandTrigger');
+
+    const nowPlayingFull = document.getElementById('nowPlayingFull');
+    const npfCover = document.getElementById('npfCover');
+    const npfTitle = document.getElementById('npfTitle');
+    const npfPlayIcon = document.getElementById('npfPlayIcon');
+    const npfSeek = document.getElementById('npfSeek');
+    const npfCurrent = document.getElementById('npfCurrent');
+    const npfDuration = document.getElementById('npfDuration');
+    const npfShuffleBtn = document.getElementById('npfShuffle');
+    const npfRepeatBtn = document.getElementById('npfRepeat');
+    const npfToast = document.getElementById('npfToast');
 
     const ICON_PLAY = '<path d="M8 5v14l11-7z"/>';
     const ICON_PAUSE = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+    const ICON_PLAY_WHITE = '<path d="M8 5v14l11-7z" fill="#fff"/>';
+    const ICON_PAUSE_WHITE = '<path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="#fff"/>';
 
     function formatTime(sec){
       if (!isFinite(sec) || sec < 0) sec = 0;
@@ -605,27 +788,38 @@
 
     audio.addEventListener('loadedmetadata', () => {
       npDuration.textContent = formatTime(audio.duration);
+      npfDuration.textContent = formatTime(audio.duration);
     });
 
     audio.addEventListener('timeupdate', () => {
       if (seeking) return;
-      npCurrent.textContent = formatTime(audio.currentTime);
-      npDuration.textContent = formatTime(audio.duration);
+      const cur = formatTime(audio.currentTime);
+      const dur = formatTime(audio.duration);
+      npCurrent.textContent = cur;
+      npDuration.textContent = dur;
+      npfCurrent.textContent = cur;
+      npfDuration.textContent = dur;
       const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
       npSeek.value = pct;
+      npfSeek.value = pct;
     });
 
-    npSeek.addEventListener('input', () => {
+    function seekInput(val){
       seeking = true;
-      npCurrent.textContent = formatTime((npSeek.value / 100) * (audio.duration || 0));
-    });
-
-    npSeek.addEventListener('change', () => {
+      const t = formatTime((val / 100) * (audio.duration || 0));
+      npCurrent.textContent = t;
+      npfCurrent.textContent = t;
+    }
+    function seekCommit(val){
       if (audio.duration){
-        audio.currentTime = (npSeek.value / 100) * audio.duration;
+        audio.currentTime = (val / 100) * audio.duration;
       }
       seeking = false;
-    });
+    }
+    npSeek.addEventListener('input', () => seekInput(npSeek.value));
+    npSeek.addEventListener('change', () => seekCommit(npSeek.value));
+    npfSeek.addEventListener('input', () => seekInput(npfSeek.value));
+    npfSeek.addEventListener('change', () => seekCommit(npfSeek.value));
 
     function loadTrack(i){
       currentTrack = (i + tracks.length) % tracks.length;
@@ -633,45 +827,140 @@
       audio.src = t.src;
       npCover.src = t.cover;
       npTitle.textContent = t.title;
-      npSeek.value = 0;
+      npfCover.src = t.cover;
+      npfTitle.textContent = t.title;
+      [npSeek, npfSeek].forEach(el => el.value = 0);
       npCurrent.textContent = '0:00';
       npDuration.textContent = '0:00';
+      npfCurrent.textContent = '0:00';
+      npfDuration.textContent = '0:00';
+    }
+
+    function setPlayIcons(playing){
+      npPlayIcon.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+      npfPlayIcon.innerHTML = playing ? ICON_PAUSE_WHITE : ICON_PLAY_WHITE;
     }
 
     function playCurrent(){
       audio.play();
       nowPlaying.classList.add('show');
-      npPlayIcon.innerHTML = ICON_PAUSE;
+      setPlayIcons(true);
+    }
+
+    function openFull(){
+      nowPlayingFull.classList.add('show');
+    }
+    function closeFull(){
+      nowPlayingFull.classList.remove('show');
+    }
+
+    function randomOtherIndex(){
+      if (tracks.length <= 1) return currentTrack;
+      let idx;
+      do { idx = Math.floor(Math.random() * tracks.length); } while (idx === currentTrack);
+      return idx;
+    }
+
+    function goNext(){
+      loadTrack(isShuffle ? randomOtherIndex() : currentTrack + 1);
+      playCurrent();
+    }
+    function goPrev(){
+      loadTrack(isShuffle ? randomOtherIndex() : currentTrack - 1);
+      playCurrent();
     }
 
     playAllBtn.addEventListener('click', () => {
       loadTrack(0);
       playCurrent();
+      openFull();
     });
 
-    document.getElementById('npPlayPause').addEventListener('click', () => {
+    npExpandTrigger.addEventListener('click', (e) => {
+      if (e.target.closest('.np-controls')) return;
+      openFull();
+    });
+    document.getElementById('npfMinimize').addEventListener('click', closeFull);
+
+    function togglePlayPause(){
       if (audio.paused){
         playCurrent();
       } else {
         audio.pause();
-        npPlayIcon.innerHTML = ICON_PLAY;
+        setPlayIcons(false);
+      }
+    }
+    document.getElementById('npPlayPause').addEventListener('click', togglePlayPause);
+    document.getElementById('npfPlayPause').addEventListener('click', togglePlayPause);
+
+    document.getElementById('npNext').addEventListener('click', goNext);
+    document.getElementById('npfNext').addEventListener('click', goNext);
+    document.getElementById('npPrev').addEventListener('click', goPrev);
+    document.getElementById('npfPrev').addEventListener('click', goPrev);
+
+    npfShuffleBtn.addEventListener('click', () => {
+      isShuffle = !isShuffle;
+      npfShuffleBtn.classList.toggle('active', isShuffle);
+    });
+
+    npfRepeatBtn.addEventListener('click', () => {
+      repeatMode = repeatMode === 'off' ? 'all' : (repeatMode === 'all' ? 'one' : 'off');
+      npfRepeatBtn.classList.toggle('active', repeatMode !== 'off');
+      const existingBadge = npfRepeatBtn.querySelector('.repeat-one-badge');
+      if (existingBadge) existingBadge.remove();
+      if (repeatMode === 'one'){
+        const badge = document.createElement('span');
+        badge.className = 'repeat-one-badge';
+        badge.textContent = '1';
+        npfRepeatBtn.appendChild(badge);
       }
     });
 
-    document.getElementById('npNext').addEventListener('click', () => {
-      loadTrack(currentTrack + 1);
-      playCurrent();
-    });
-
-    document.getElementById('npPrev').addEventListener('click', () => {
-      loadTrack(currentTrack - 1);
-      playCurrent();
-    });
-
     audio.addEventListener('ended', () => {
-      loadTrack(currentTrack + 1);
-      playCurrent();
+      if (repeatMode === 'one'){
+        audio.currentTime = 0;
+        audio.play();
+        return;
+      }
+      const isLast = currentTrack === tracks.length - 1;
+      if (!isShuffle && repeatMode === 'off' && isLast){
+        loadTrack(0);
+        setPlayIcons(false);
+        return;
+      }
+      goNext();
     });
+
+    document.getElementById('npfShare').addEventListener('click', async () => {
+      const t = tracks[currentTrack];
+      const shareUrl = `${location.origin}${location.pathname}?track=${currentTrack}`;
+      const shareData = {
+        title: `${t.title} — ARISTXCLESS`,
+        text: `Listen to "${t.title}" by ARISTXCLESS`,
+        url: shareUrl
+      };
+      if (navigator.share){
+        try { await navigator.share(shareData); } catch (e) {}
+      } else {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          npfToast.classList.add('show');
+          setTimeout(() => npfToast.classList.remove('show'), 1800);
+        } catch (e) {}
+      }
+    });
+
+    // Deep link: ?track=N opens straight to that track's full-screen page
+    (function initFromUrl(){
+      const params = new URLSearchParams(location.search);
+      const t = params.get('track');
+      const idx = parseInt(t, 10);
+      if (!isNaN(idx) && tracks[idx]){
+        loadTrack(idx);
+        openFull();
+        nowPlaying.classList.add('show');
+      }
+    })();
   </script>
 
 </body>
